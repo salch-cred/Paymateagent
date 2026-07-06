@@ -76,7 +76,7 @@ def require_payment(path: str, price: Any, pay_to_address: Any, network: str, fa
         }
     }
     
-    facilitator = HTTPFacilitatorClient(url=facilitator_url)
+    facilitator = HTTPFacilitatorClient(config={"url": facilitator_url})
     server = x402ResourceServer(facilitator)
     return payment_middleware(routes, server)
 
