@@ -1,12 +1,21 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
+import { use, useEffect, useState } from "react"
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi"
 import { injected } from "wagmi/connectors"
 import { parseUnits, custom } from "viem"
 import { createWalletClient } from "viem"
 import { metisSepolia } from "viem/chains"
+
+// Extend Window with the injected ethereum provider (EIP-1193)
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
+      [key: string]: unknown
+    }
+  }
+}
 
 type Invoice = {
   id: string
@@ -20,8 +29,9 @@ type Invoice = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3001"
 
-export default function PayPage() {
-  const { id } = useParams<{ id: string }>()
+// Next.js 16: Client Component pages receive params as a Promise — unwrap with React.use()
+export default function PayPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [status, setStatus] = useState<"idle" | "paying" | "paid" | "error">("idle")
   const [error, setError] = useState<string | null>(null)
@@ -90,13 +100,13 @@ export default function PayPage() {
       const amount = parseUnits(priceStr, 6)
 
       // 3. Request wallet client signature for the transfer
-      if (!(window as any).ethereum) {
+      if (!window.ethereum) {
         throw new Error("No Web3 provider injected in browser. Please install MetaMask.")
       }
-      
+
       const walletClient = createWalletClient({
         chain: metisSepolia,
-        transport: custom((window as any).ethereum)
+        transport: custom(window.ethereum)
       })
 
       // 4. Send transaction transferring USDC to the payee address
@@ -137,9 +147,9 @@ export default function PayPage() {
       if (invoice) {
         setInvoice({ ...invoice, status: "paid" })
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setStatus("error")
-      setError(e.message || "Payment failed.")
+      setError(e instanceof Error ? e.message : "Payment failed.")
     }
   }
 

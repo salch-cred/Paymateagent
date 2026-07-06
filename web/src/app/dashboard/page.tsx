@@ -94,8 +94,8 @@ export default function DashboardPage() {
         status: data.invoice.status,
         payUrl: `${window.location.origin}${data.payUrl}`,
       })
-    } catch (e: any) {
-      setError(e.message || "Could not generate invoice")
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Could not generate invoice")
     } finally {
       setGenerating(false)
     }
